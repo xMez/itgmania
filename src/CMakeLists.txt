@@ -614,12 +614,18 @@ if(WITH_CLUB_FANTASTIC)
 endif()
 
 add_executable(itgmania_unit_tests
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_music_wheel_stats.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_msd.cpp")
 
 target_link_libraries(itgmania_unit_tests
   PRIVATE itgmania_core GTest::gtest_main)
 
 sm_copy_runtime_libraries(itgmania_unit_tests)
+
+include(GoogleTest)
+gtest_discover_tests(itgmania_unit_tests
+  DISCOVERY_MODE PRE_TEST
+  PROPERTIES TIMEOUT 30)
 
 add_custom_target(run-tests
   COMMAND $<TARGET_FILE:itgmania_unit_tests>

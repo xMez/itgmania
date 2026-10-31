@@ -1131,6 +1131,8 @@
 		<Class base='WheelBase' name='MusicWheel'>
 			<Function name='ChangeSort'/>
 			<Function name='GetCurrentSections'/>
+			<Function name='GetSectionScoreStats'/>
+			<Function name='GetSelectedSectionScoreStats'/>
 			<Function name='GetSelectedSection'/>
 			<Function name='HasSongs'/>
 			<Function name='IsRouletting'/>

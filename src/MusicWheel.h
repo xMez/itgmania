@@ -9,6 +9,7 @@
 #include "GameConstantsAndTypes.h"
 #include "LuaReference.h"
 #include "MusicWheelItem.h"
+#include "MusicWheelStats.h"
 #include "RageSound.h"
 #include "RageTypes.h"
 #include "ThemeMetric.h"
@@ -70,6 +71,10 @@ class MusicWheel : public WheelBase {
   virtual void ReloadSongList();
 
   void GetCurrentSections(std::vector<std::string>& sections);
+  MusicWheelSectionScoreStats GetSectionScoreStats(
+      PlayerNumber pn, std::string section, std::string parent = "",
+      bool isParent = false);
+  MusicWheelSectionScoreStats GetSelectedSectionScoreStats(PlayerNumber pn);
   // Lua
   void PushSelf(lua_State* L);
 

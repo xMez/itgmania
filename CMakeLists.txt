@@ -4,6 +4,8 @@ project(StepMania)
 
 include(StepmaniaCore.cmake)
 
+enable_testing()
+
 # The external libraries need to be included.
 add_subdirectory(extern)
 
