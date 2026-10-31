@@ -2022,6 +2022,38 @@ void MusicWheel::GetCurrentSections(std::vector<std::string>& sections) {
   }
 }
 
+MusicWheelSectionScoreStats MusicWheel::GetSectionScoreStats(
+    PlayerNumber pn, std::string section, std::string parent, bool isParent) {
+  const Style* style = GAMESTATE->GetCurrentStyle(pn);
+  StepsType stepsType = GAMESTATE->preferred_steps_type_;
+  if (style) {
+    stepsType = style->steps_type_;
+  }
+  // Follow the actual selected chart, including difficulty fallback.
+  // Headers can retain the previous song's steps; ignore those stale steps.
+  return GetMusicWheelSectionScoreStats(
+      getWheelItemsData(GAMESTATE->sort_order_), section, parent, isParent,
+      stepsType, GAMESTATE->preferred_difficulty_[pn],
+      PROFILEMAN->GetProfile(pn), GAMESTATE->cur_steps_[pn],
+      GetSelectedType() != WheelItemDataType_Song);
+}
+
+MusicWheelSectionScoreStats MusicWheel::GetSelectedSectionScoreStats(
+    PlayerNumber pn) {
+  if (cur_wheel_item_data_.empty()) {
+    return {};
+  }
+  const auto* item = GetCurWheelItemData(selection_);
+  if (item->type_ != WheelItemDataType_Section &&
+      item->type_ != WheelItemDataType_ParentSection &&
+      item->type_ != WheelItemDataType_Song) {
+    return {};
+  }
+  return GetSectionScoreStats(
+      pn, item->text_, item->parent_section_,
+      item->type_ == WheelItemDataType_ParentSection);
+}
+
 // sm-ssc additions: jump to group
 std::string MusicWheel::JumpToNextGroup() {
   // Thanks to Juanelote for this logic:
@@ -2255,6 +2287,43 @@ class LunaMusicWheel : public Luna<MusicWheel> {
     return 1;
   }
   DEFINE_METHOD(GetSelectedSection, GetSelectedSection());
+  static int PushSectionScoreStats(
+      lua_State* L, const MusicWheelSectionScoreStats& stats) {
+    lua_newtable(L);
+    auto field = [L](const char* name, double value) {
+      lua_pushnumber(L, value);
+      lua_setfield(L, -2, name);
+    };
+    Enum::Push(L, stats.difficulty);
+    lua_setfield(L, -2, "Difficulty");
+    field("Songs", stats.songs);
+    field("Charts", stats.charts);
+    field("ScoredCharts", stats.scoredCharts);
+    field("PassedCharts", stats.passedCharts);
+    field("QuintCharts", stats.quintCharts);
+    field("FailedCharts", stats.grades[Grade_Failed]);
+    field("UnplayedCharts", stats.charts - stats.scoredCharts);
+    field("AverageMeter", stats.averageMeter);
+    lua_newtable(L);
+    for (int g = 0; g < NUM_Grade; ++g) {
+      Enum::Push(L, static_cast<Grade>(g));
+      lua_pushinteger(L, stats.grades[g]);
+      lua_settable(L, -3);
+    }
+    lua_setfield(L, -2, "GradeCounts");
+    return 1;
+  }
+  static int GetSectionScoreStats(T* p, lua_State* L) {
+    PlayerNumber pn = Enum::Check<PlayerNumber>(L, 1);
+    bool isParent = lua_isnoneornil(L, 4) ? false : BArg(4);
+    return PushSectionScoreStats(
+        L, p->GetSectionScoreStats(
+               pn, SArg(2), luaL_optstring(L, 3, ""), isParent));
+  }
+  static int GetSelectedSectionScoreStats(T* p, lua_State* L) {
+    PlayerNumber pn = Enum::Check<PlayerNumber>(L, 1);
+    return PushSectionScoreStats(L, p->GetSelectedSectionScoreStats(pn));
+  }
   static int GetCurrentSections(T* p, lua_State* L) {
     std::vector<std::string> v;
     p->GetCurrentSections(v);
@@ -2311,6 +2380,8 @@ class LunaMusicWheel : public Luna<MusicWheel> {
     ADD_METHOD(SelectCourse);
     ADD_METHOD(Move);
     ADD_METHOD(GetCurrentSections);
+    ADD_METHOD(GetSectionScoreStats);
+    ADD_METHOD(GetSelectedSectionScoreStats);
   }
 };
 
